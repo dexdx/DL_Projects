@@ -7,6 +7,7 @@ from torch.nn import functional as F
 '''
 Currently includes:
     - FCC 
+    - FCC_aux
     - Siamese
     - Siamese no weight sharing 
     - Siamese aux
@@ -17,54 +18,53 @@ class FCC(nn.Module):
     def __init__(self):
         super(FCC, self).__init__()
         
-#         self.LeNet = nn.Sequential(
-#             nn.Linear(392,1024),  # 16x12x12 (input is 1x14x14)
-#             nn.BatchNorm1d(1024),
-#             nn.ReLU(),
-#             nn.Linear(1024,512),  # 16x12x12 (input is 1x14x14)
-#             nn.BatchNorm1d(512),
-#             nn.ReLU(),
-#             nn.Linear(512, 128),  # 16x12x12 (input is 1x14x14)
-#             nn.BatchNorm1d(128),
-#             nn.ReLU(),
-#             nn.Linear(128, 2),  # 16x12x12 (input is 1x14x14)
-#             nn.BatchNorm1d(2),
-#             nn.ReLU(),
-#         )
-        
         self.LeNet = nn.Sequential(
-            nn.Linear(392, 2056),  # 16x12x12 (input is 1x14x14)
-            nn.BatchNorm1d(2056),
-            nn.ReLU(),
-            nn.Dropout(),
-            nn.Linear(2056,1024),  # 16x12x12 (input is 1x14x14)
-            nn.BatchNorm1d(1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),  # 16x12x12 (input is 1x14x14)
+            nn.Linear(392,512),  # 16x12x12 (input is 1x14x14)
             nn.BatchNorm1d(512),
             nn.ReLU(),
-            nn.Linear(512, 64),  # 16x12x12 (input is 1x14x14)
-            nn.BatchNorm1d(64),
+            nn.Linear(512,256),  # 16x12x12 (input is 1x14x14)
+            nn.BatchNorm1d(256),
             nn.ReLU(),
-
-            nn.Linear(64, 2),  # 16x12x12 (input is 1x14x14)
+            nn.Linear(256, 128),  # 16x12x12 (input is 1x14x14)
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Linear(128, 2),  # 16x12x12 (input is 1x14x14)
             nn.BatchNorm1d(2),
             nn.ReLU(),
         )
+        
+#         self.LeNet = nn.Sequential(
+#             nn.Linear(392, 2056),  # 16x12x12 (input is 1x14x14)
+#             nn.BatchNorm1d(2056),
+#             nn.ReLU(),
+#             nn.Dropout(),
+#             nn.Linear(2056,1024),  # 16x12x12 (input is 1x14x14)
+#             nn.BatchNorm1d(1024),
+#             nn.ReLU(),
+#             nn.Linear(1024, 512),  # 16x12x12 (input is 1x14x14)
+#             nn.BatchNorm1d(512),
+#             nn.ReLU(),
+#             nn.Linear(512, 64),  # 16x12x12 (input is 1x14x14)
+#             nn.BatchNorm1d(64),
+#             nn.ReLU(),
+
+#             nn.Linear(64, 2),  # 16x12x12 (input is 1x14x14)
+#             nn.BatchNorm1d(2),
+#             nn.ReLU(),
+#         )
     
     def forward(self, x1, x2):
 #         print(x1.view(-1).size())
         x = torch.cat((x1.view(x1.size()[0], -1), x2.view(x1.size()[0], -1)), dim = 1)
         return self.LeNet(x)
     
-class FCC(nn.Module):
+class FCC_aux(nn.Module):
 
     def __init__(self):
         super(FCC_aux, self).__init__()
         
         self.LeNet = nn.Sequential(
             nn.Linear(392, 1024),
-            nn.BatchNorm1d(1024),
             nn.ReLU(),
             nn.Dropout(),
             nn.Linear(1024, 512),
@@ -79,7 +79,7 @@ class FCC(nn.Module):
         )
         
         self.Aux = nn.Sequential(
-            nn.Linear(392, 256),  # 16x12x12 (input is 1x14x14)
+            nn.Linear(196, 256),  # 16x12x12 (input is 1x14x14)
             nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Dropout(),
@@ -205,7 +205,7 @@ class Siamese_no_sharing(nn.Module):
     
     
 # Weight-sharing "Siamese" LeNet
-class Siamese__ws_aux(nn.Module):
+class Siamese_ws_aux(nn.Module):
 
     def __init__(self):
         super(Siamese_ws_aux, self).__init__()

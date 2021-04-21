@@ -159,3 +159,49 @@ class Siamese_no_sharing(nn.Module):
         x3 = x2 - x1
         x3 = self.LeNet3(x3)
         return x3
+    
+    
+class Siamese_ws_auxilary(nn.Module):
+
+    def __init__(self):
+        super(Siamese, self).__init__()
+        
+        self.LeNet1 = nn.Sequential(
+            nn.Conv2d(1,16,5),  # 16x10x10 (input is 1x14x14)
+            nn.MaxPool2d(2),    # 16x5x5
+            nn.ReLU(),
+            nn.Conv2d(16,32,2), # 32x4x4
+            nn.MaxPool2d(2),    # 32x2x2 (-> 1x128 before LeNet2)
+            nn.ReLU()
+        )
+        self.LeNet2 = nn.Sequential(
+            nn.Linear(128,64),  # 1x64
+            nn.ReLU(),
+            nn.Linear(64,32),   # 1x32
+            nn.ReLU()
+        )
+        self.LeNet3 = nn.Sequential(
+            nn.Linear(32,16),   # 1x16
+            nn.Sigmoid(),
+            nn.Linear(16,2)     # 1x2
+        )
+        self.AuxLayer = nn.Sequential(
+            nn.Linear(32,16),   # 1x16
+            nn.Sigmoid(),
+            nn.Linear(16,10)     # 1x2
+        )
+        
+    def forward_bro(self, x):
+        x = self.LeNet1(x)
+        x = x.view(-1,1,128)
+        x = self.LeNet2(x)
+        return x
+    
+    def forward(self, x1, x2):
+        x1 = self.forward_bro(x1)
+        x2 = self.forward_bro(x2)
+        x3 = x2 - x1
+        x1 = self.AuxLayer(x1)
+        x2 = self.AuxLayer(x2)
+        x3 = self.LeNet3(x3)
+        return x1,x2,x3

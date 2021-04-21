@@ -159,8 +159,8 @@ class Siamese_no_sharing(nn.Module):
         x3 = x2 - x1
         x3 = self.LeNet3(x3)
         return x3
-    
-    
+
+
 class Siamese_ws_auxilary(nn.Module):
 
     def __init__(self):

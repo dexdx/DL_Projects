@@ -164,7 +164,7 @@ class Siamese_no_sharing(nn.Module):
 class Siamese_ws_auxilary(nn.Module):
 
     def __init__(self):
-        super(Siamese, self).__init__()
+        super(Siamese_ws_auxilary, self).__init__()
         
         self.LeNet1 = nn.Sequential(
             nn.Conv2d(1,16,5),  # 16x10x10 (input is 1x14x14)

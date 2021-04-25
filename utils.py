@@ -9,6 +9,7 @@ from tqdm import trange
 
 class Proj1():
     def train_model(model, train_input, train_target, batch_size, nb_epochs, train_classes = None):
+        model.train()
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.SGD(model.parameters(), lr = 1e-1)
         aux_criterion = nn.CrossEntropyLoss()
@@ -20,7 +21,8 @@ class Proj1():
                 imgs1 = imgs[:,0].view(batch_size, 1, 14, 14)
                 imgs2 = imgs[:,1].view(batch_size, 1, 14, 14)
                 if train_classes==None:
-                    output = model(imgs1, imgs2).view(batch_size, -1)
+                    _, _, output = model(imgs1, imgs2)
+                    output = output.view(batch_size, -1)
                     loss = criterion(output, train_target.narrow(0, b, batch_size))
                 else:
                     x1_pred, x2_pred , output = model(imgs1, imgs2)
@@ -40,7 +42,7 @@ class Proj1():
             
     def compute_nb_errors(model, input_data, target_data, batch_size):
         nb_errors = 0
-
+        model.eval()
         for b in range(0, input_data.size(0), batch_size):
             imgs = input_data.narrow(0, b, batch_size)
             target = target_data.narrow(0, b, batch_size)

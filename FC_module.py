@@ -88,6 +88,28 @@ class Tanh(Module):
     
     def param ( self ):
         return []
+    
+
+class Sigmoid(Module):    
+    def __init__(self, prev_module = None):
+        self.prev_module =  prev_module
+        self.curr_grad = 0 #Temporary
+
+    def forward (self , input_ ):
+        self.curr_grad = input_.sigmoid()
+        return self.curr_grad
+        
+    def backward (self , gradwrtoutput):
+        #Calculate gradient
+        sig = self.curr_grad.sigmoid()
+        grad = sig * sig.multiply(-1).add(1) * gradwrtoutput
+        
+        #Call backward() for previous module
+        if self.prev_module is not None:
+            prev_grads = self.prev_module.backward(grad)
+    
+    def param ( self ):
+        return []
 
 
 # Linear/fully connected layer
@@ -163,6 +185,14 @@ class Sequential(object):
                 curr_layer = Tanh(last_layer)
                 self.layers.append(curr_layer)
                 last_layer = curr_layer
+                
+            elif(layer_name == 'Sigmoid'):
+                assert arguments[idx] == [], "Sigmoid requires no input!"
+
+                curr_layer = Sigmoid(last_layer)
+                self.layers.append(curr_layer)
+                last_layer = curr_layer
+                
             else:
                 raise Exception("No Module matches the input")
 

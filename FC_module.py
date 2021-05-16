@@ -101,7 +101,7 @@ class Dropout(object):
         self.chance = chance
 
     def forward (self , input_ ,training = True):
-        if (!training):
+        if (not training):
             return input_        
         self.curr_grad = empty(input_.shape).uniform_(0,1) > self.chance
         return input_ * self.curr_grad
@@ -130,7 +130,7 @@ class BatchNorm(object):
 
     def forward (self , input_ ,training = True):
         assert input_.shape[1] == self.input_size, "Input size must match!" 
-        if (!training):
+        if (not training):
             #Normalize each input dimension in the batch
             curr_mean = self.running_batch_mean
             curr_var = self.running_batch_var
@@ -291,7 +291,7 @@ class Sequential(object):
     def eval(self,input_):
         out = input_
         for idx,layer in enumerate(self.layers[:-1]):
-            if (idx is in self.special_layers):
+            if (idx in self.special_layers):
                 out = layer.forward(out,False)
             else:
                 out = layer.forward(out)

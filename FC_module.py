@@ -1,24 +1,7 @@
 from torch import empty
 import math
-
-
-# Parent
-class Module ( object ):
-    
-    def forward (self , input_ ):
-        return input_
-    def backward (self, grad):
-        
-        #Call backward() for previous module
-        if self.prev_module is not None:
-            prev_grads = self.prev_module.backward(grad)
-            
-    def param ( self ):
-        return []
-
-
 # Loss function
-class LossMSE(Module):
+class LossMSE(object):
     
     def __init__(self, prev_module = None):
         self.prev_module =  prev_module
@@ -46,7 +29,7 @@ class LossMSE(Module):
 
 
 # Activation functions
-class ReLU(Module):
+class ReLU(object):
     
     def __init__(self, prev_module = None):
         self.prev_module =  prev_module
@@ -68,13 +51,13 @@ class ReLU(Module):
         return []
 
 
-class Tanh(Module):
+class Tanh(object):
     
     def __init__(self, prev_module = None):
         self.prev_module =  prev_module
         self.curr_grad = 0 #Temporary
 
-    def forward (self , input_ ):
+    def forward (self , input_):
         self.curr_grad = input_.tanh()
         return self.curr_grad
         
@@ -90,12 +73,12 @@ class Tanh(Module):
         return []
     
 
-class Sigmoid(Module):    
+class Sigmoid(object):    
     def __init__(self, prev_module = None):
         self.prev_module =  prev_module
         self.curr_grad = 0 #Temporary
 
-    def forward (self , input_ ):
+    def forward (self , input_):
         self.curr_grad = input_.sigmoid()
         return self.curr_grad
         
@@ -110,26 +93,106 @@ class Sigmoid(Module):
     
     def param ( self ):
         return []
+    
+    
+class Dropout(object):    
+    def __init__(self, prev_module = None, chance = 0.5):
+        self.prev_module =  prev_module
+        self.chance = chance
+
+    def forward (self , input_ ,training = True):
+        if (!training):
+            return input_        
+        self.curr_grad = empty(input_.shape).uniform_(0,1) > self.chance
+        return input_ * self.curr_grad
+        
+    def backward (self , gradwrtoutput):
+        #Calculate gradient
+        grad = self.curr_grad * gradwrtoutput
+        
+        #Call backward() for previous module
+        if self.prev_module is not None:
+            prev_grads = self.prev_module.backward(grad)
+    
+    def param ( self ):
+        return []
+    
+class BatchNorm(object):    
+    def __init__(self, input_size,running_mean_momentum = 0.1,prev_module = None, lr=1e-1,momentum = 0):
+        self.prev_module =  prev_module
+        self.scale_weight = empty(input_size).fill_(1)
+        self.translation_weight = empty(input_size).fill_(0)
+        self.running_batch_mean = -1 # -1 signals they are not set yet
+        self.running_batch_var = -1  # -1 signals they are not set yet
+        self.rmm = running_mean_momentum
+        self.lr = lr
+        self.momentum = momentum
+
+    def forward (self , input_ ,training = True):
+        assert input_.shape[1] == self.input_size, "Input size must match!" 
+        if (!training):
+            #Normalize each input dimension in the batch
+            curr_mean = self.running_batch_mean
+            curr_var = self.running_batch_var
+        else:
+            #Normalize each input dimension in the batch
+            curr_mean = input_.mean(dim = 0)
+            curr_var = input_.var(dim = 0)
+            
+        normalized_input = (input_ - curr_mean.expand(input_.shape)) / (curr_var + 1e-5).sqrt().expand(input_.shape)
+        #Update running statistics
+        if(self.last_batch_mean == -1 and self.last_batch_var == -1):
+            self.running_batch_mean = curr_mean
+            self.running_batch_var = curr_var
+        elif(training):
+            self.running_batch_mean = self.rmm *curr_mean + (1-self.rmm) * self.running_batch_mean
+            self.running_batch_var =  self.rmm * curr_var + (1-self.rmm) * self.running_batch_var
+
+        #Scale them back          
+        scaled_input = normalized_input * self.scale_weight.expand(input_.shape) + self.translation_weight.expand(input_.shape) 
+
+        #Remember for the backwards pass                
+        self.last_var = curr_var
+        self.normalized_input = normalized_input
+        return scaled_input
+    
+    def update(self, gradwrtoutput):
+        
+        self.scale_weight +=  self.momentum * self.scale_weight - self.lr * ( self.normalized_input * gradwrtoutput).mean(0)
+        self.translation_weight +=  self.momentum * self.translation_weight - self.lr * gradwrtoutput.mean(0)
+        
+    def backward (self , gradwrtoutput):
+        #Calculate gradient
+        grad = gradwrtoutput * (self.scale_weight / (self.last_var + 1e-5).sqrt()).expand(gradwrtoutput.shape)
+        
+        #update weights
+        self.update(gradwrtoutput)  #This is the correct version
+        
+        #Call backward() for previous module
+        if self.prev_module is not None:
+            prev_grads = self.prev_module.backward(grad)
+    
+    def param ( self ):
+        return [self.scale_weight,self.translation_weight,self.running_batch_mean,self.running_batch_var]
 
 
 # Linear/fully connected layer
-class FCC(Module):
+class FCC(object):
     
-    def __init__(self, input_size, output_size, prev_module = None, lr=1e-1, N = None,init_weights = None):
+    def __init__(self, input_size, output_size, prev_module = None, lr=1e-1,momentum = 0):
         self.input_size = input_size
         self.output_size = output_size
         self.prev_module =  prev_module
-
+        self.momentum = momentum
+        self.lr = lr
+        self.batch_size = 1
+        
         # Uniform initialization
-        # self.weights = empty(input_size, output_size).normal_(0, math.sqrt(2/(input_size + output_size)))
         self.weights = empty(input_size, output_size).uniform_(-1* math.sqrt(1/input_size),math.sqrt(1/input_size) )
         self.bias = empty(1,output_size).uniform_(-1* math.sqrt(1/input_size),math.sqrt(1/input_size) )
         self.initial_weights = self.weights
-        self.curr_input = 0
-        self.lr = lr
-        self.batch_size = 1
 
-    def forward (self , input_ ):
+    def forward (self , input_):
         assert input_.shape[1] == self.input_size, "Input size must match!" 
         out = input_ @ (self.weights) 
         out += self.bias
@@ -144,16 +207,15 @@ class FCC(Module):
         grad = gradwrtoutput @ (self.weights.T)
         
         #update weights
-        self.update(gradwrtoutput, self.lr)  #This is the correct version
-        #self.update(grad, self.lr)
+        self.update(gradwrtoutput)  #This is the correct version
         
         #Call backward() for previous module
         if self.prev_module is not None:
             prev_grads = self.prev_module.backward(grad)
     
-    def update(self, gradwrtoutput, learning_rate):
-        self.weights -= learning_rate * ( self.curr_input.T @ gradwrtoutput ) / self.batch_size
-        self.bias -= learning_rate * gradwrtoutput.mean(0,True)
+    def update(self, gradwrtoutput):
+        self.weights += self.momentum * self.weights - self.lr * ( self.curr_input.T @ gradwrtoutput ) / self.batch_size
+        self.bias += self.momentum * self.bias - self.lr * gradwrtoutput.mean(0,True)
         
     def param ( self ):
         return [self.weights, self.bias]
@@ -164,13 +226,14 @@ class FCC(Module):
 
 # Sequential builder
 class Sequential(object):
-    def __init__(self, layer_list, arguments, loss='MSE', lr = 2 * 1e-2):
+    def __init__(self, layer_list, arguments, loss='MSE', lr = 2 * 1e-2,momentum = 0):
         self.layers = []
-        last_layer = None        
+        last_layer = None    
+        self.special_layers = [] #Layers where training and eval have different forward fucntionality such as Dropout and BatchNorm
         for idx ,layer_name in enumerate(layer_list):
             if(layer_name == 'FCC'):
                 assert arguments[idx] != [], "FCC requires a tuple as input!"
-                curr_layer =FCC(arguments[idx][0], arguments[idx][1], last_layer, lr=lr)
+                curr_layer =FCC(arguments[idx][0], arguments[idx][1], last_layer, lr=lr ,momentum = momentum)
                 self.inits = curr_layer.initials()
                 self.layers.append(curr_layer)
                 last_layer = curr_layer
@@ -193,6 +256,20 @@ class Sequential(object):
                 self.layers.append(curr_layer)
                 last_layer = curr_layer
                 
+            elif(layer_name == 'Dropout'):
+                assert arguments[idx] != [], "Dropout requires a probability as input!"
+
+                curr_layer = Dropout(last_layer,arguments[idx][0])
+                self.layers.append(curr_layer)
+                last_layer = curr_layer
+                self.special_layers.append(idx)
+            elif(layer_name == 'BatchNorm'):
+                assert arguments[idx] != [], "BatchNorm requires an input size as input!"
+
+                curr_layer = BatchNorm(arguments[idx][0], arguments[idx][1], last_layer, lr=lr, momentum = momentum)
+                self.layers.append(curr_layer)
+                last_layer = curr_layer
+                self.special_layers.append(idx)
             else:
                 raise Exception("No Module matches the input")
 
@@ -213,8 +290,11 @@ class Sequential(object):
         
     def eval(self,input_):
         out = input_
-        for layer in self.layers[:-1]:
-            out = layer.forward(out)
+        for idx,layer in enumerate(self.layers[:-1]):
+            if (idx is in self.special_layers):
+                out = layer.forward(out,False)
+            else:
+                out = layer.forward(out)
         return out
     
     def get_inits(self):

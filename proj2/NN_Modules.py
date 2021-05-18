@@ -7,6 +7,8 @@ class LossMSE(object):
         self.prev_module =  prev_module
     
     def set_truth(self,y_true):
+        if (len(y_true.shape) >2): 
+            y_true = y_true.squeeze()
         self.y_true = y_true
     
     def forward (self , input_ ):
@@ -310,3 +312,45 @@ class Sequential(object):
     
     def get_inits(self):
         return self.inits
+
+    
+def modelTester(model, test_input,test_target,test_batch):    
+    acc = 0
+    count = 0
+    test_size = test_input.size(0)
+    minibatch = test_batch
+    for i in range(0, test_size, minibatch):
+        truth = test_target.narrow(0, i, minibatch)
+        inp = test_input.narrow(0, i, minibatch)
+        out = model.eval(inp)
+        acc += accuracy_count(out, truth)
+
+    return acc/test_size
+
+def modelTrainer(model, num_epoch = 100,train_input =None ,train_target =None,val_input = None,val_target = None, train_batch = 20, valid_batch = 0):
+    
+    loss_track = []
+    val_acc_track = []
+    train_acc_track = []
+    for epoch in range(num_epoch):
+        minibatch = train_batch
+        for i in range(0, train_input.size(0), minibatch):
+            out,loss = model.train(train_input.narrow(0, i, minibatch), train_target.narrow(0, i, minibatch).unsqueeze(1))
+        loss_track.append(loss.item())
+        train_acc_track.append(modelTester(model, train_input,train_target,train_batch))        
+        
+        if (val_input is not None):                    
+            val_acc_track.append(modelTester(model, val_input,val_target,valid_batch))
+    return model, loss_track, [train_acc_track, val_acc_track]
+
+
+def accuracy_count(pred,true):
+    pred = pred.squeeze()
+    if(len(pred.shape) > 1):        
+        pred = (pred[:,0] > pred[:,1]).long().squeeze()
+        true = true[:,0].long().squeeze()
+        return (pred.size(0) - (pred-true).abs().sum()).item()
+    else:
+        pred = (pred > 0.5).long().view(-1)
+        true = true.long().view(-1)
+        return (pred.size(0) - (pred-true).abs().sum()).item()

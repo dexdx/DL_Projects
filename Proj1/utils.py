@@ -108,13 +108,14 @@ def train_model_track_errors(model, train_input, train_target, batch_size, nb_ep
     
     return train_loss, test_loss, train_acc, test_acc
 
-def plot(train_loss, test_loss, train_acc, test_acc):
+def plot(train_loss, test_loss, train_acc, test_acc, title=''):
     # Parameters are the exact output from train_model_track_errors
     plt.figure(figsize = (9, 6))
     
     ax_loss = plt.gca()
     ax_loss.set_xlabel('Epochs')
     ax_loss.set_ylabel('Loss')
+    ax_loss.set_title(title)
     p1 = ax_loss.plot(train_loss, 'r', label = 'Train Loss')
     p2 = ax_loss.plot(test_loss,  'b', label = 'Test Loss')
     

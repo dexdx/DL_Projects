@@ -43,6 +43,11 @@ def evaluate_all(models, model_names, train_data, test_data, batch_size=100, rou
         print(f'Training model {name}:')
         # Iterate over r to get average
         for r in trange(rounds):
+            # Randomly reset all the model parameters 
+            for layer in model.children():
+                if hasattr(layer, 'reset_parameters'):
+                    layer.reset_parameters()
+                    
             # Call train_model with the correct parameters (no train_classes )
             if 'Aux' in name:
                 utils.train_model(model, train_input, train_target, batch_size, epochs, train_classes)
@@ -52,9 +57,9 @@ def evaluate_all(models, model_names, train_data, test_data, batch_size=100, rou
             train_error_rates[r] = utils.compute_nb_errors(model, train_input, train_target, batch_size)/train_input.size(0)
             test_error_rates[r] = utils.compute_nb_errors(model, test_input, test_target, batch_size)/test_input.size(0)
             
-        #print(f'For the model {name}, the train average error rate is {train_error_rates.mean()} and the test average error rate {test_error_rates.mean()}\n')
-        print('For the model {}, the train average error rate is {:.3}% and the test average error rate is {:.3}%.\n'
-              .format(name, 100*train_error_rates.mean(), 100*test_error_rates.mean()))
+        print(f'For the model {name}, the train average error rate is {train_error_rates.mean():.3f} and the test average error rate {test_error_rates.mean():.3f}\n')
+#         print('For the model {}, the train average error rate is {:.3}% and the test average error rate is {:.3}%.\n'
+#               .format(name, 100*train_error_rates.mean(), 100*test_error_rates.mean()))
         
 # Call function
 evaluate_all(models, model_names, train_data, test_data, batch_size=100, rounds=10, epochs=25)

@@ -57,7 +57,8 @@ def evaluate_all(models, model_names, train_data, test_data, batch_size=100, rou
             train_error_rates[r] = utils.compute_nb_errors(model, train_input, train_target, batch_size)/train_input.size(0)
             test_error_rates[r] = utils.compute_nb_errors(model, test_input, test_target, batch_size)/test_input.size(0)
             
-        print(f'For the model {name}, the train average error rate is {train_error_rates.mean():.3f} and the test average error rate {test_error_rates.mean():.3f}\n')
+        print(f'For the model {name}, the train average error rate is {100*train_error_rates.mean():.2f}%  (with standard deviation of \
+{100*train_error_rates.std():.2f}) and the test average error rate {100*test_error_rates.mean():.2f}% (with standard deviation of {100*test_error_rates.std():.2f})\n')
 #         print('For the model {}, the train average error rate is {:.3}% and the test average error rate is {:.3}%.\n'
 #               .format(name, 100*train_error_rates.mean(), 100*test_error_rates.mean()))
         

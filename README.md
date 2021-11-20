@@ -3,7 +3,7 @@
 These two projects were part of the Deep Learning course of the Electrical Engineering Department of EPFL.
 
 ## Project 1
-Find the best architecture for comparing two handwritten digits (MNIST), i.e. given an input tensor of dimension 2x14x14 (two gray scale images of 14x14), predict whether the first digit is less or equal than the second one. We found that weight-sharing and auxilary losses are instrumental at achieving state-of-the-art performance in this task.
+Find the best architecture for comparing two handwritten digits (MNIST), i.e. given an input tensor of dimension 2x14x14 (two gray scale images of 14x14), predict whether the first digit is less or equal than the second one. We found that `weight-sharing` and `auxilary losses` are instrumental at achieving state-of-the-art performance in this task.
 
 ## Summary of the course
 The objective of this course is to provide a complete introduction to deep machine learning. How to design a neural network, how to train it, and what are the modern techniques that specifically handle very large networks.

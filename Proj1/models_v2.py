@@ -132,9 +132,9 @@ class Siamese(nn.Module):
             nn.Dropout(),
             nn.BatchNorm2d(16),
             nn.ReLU(),
-            nn.Conv2d(16,32,3), # 32x5x5
+            nn.Conv2d(16,32,3), # 32x4x4
             nn.BatchNorm2d(32),
-            nn.Conv2d(32,64,3), # 32x5x5
+            nn.Conv2d(32,64,3), # 64x2x2 (256)
             nn.BatchNorm2d(64),
             nn.ReLU()        
         )
